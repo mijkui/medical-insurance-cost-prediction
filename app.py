@@ -1,42 +1,42 @@
 import streamlit as st
 import pandas as pd
 import pickle
+from pathlib import Path
 
-# Load trained model and preprocess
-rf_model = pickle.load(open('rf_model.pkl', 'rb'))
-preprocess = pickle.load(open('preprocess.pkl', 'rb'))
-feature_names = pickle.load(open('feature_names.pkl', 'rb'))
+# ---------- Load exported artefacts ----------
+ROOT = Path(__file__).parent          # folder where app resides
+preprocess    = pickle.load(open(ROOT / "preprocess.pkl",   "rb"))
+feature_names = pickle.load(open(ROOT / "feature_names.pkl","rb"))
+rf_model      = pickle.load(open(ROOT / "rf_model.pkl",     "rb"))
 
-# Title
-st.title('Medical Insurance Cost Prediction 💵🏥')
+# ---------- Page config ----------
+st.set_page_config(page_title="Medical Cost Predictor", page_icon="💵🏥")
 
-# Inputs
-age = st.slider('Age', 18, 100, 30)
-sex = st.selectbox('Sex', ['male', 'female'])
-bmi = st.slider('BMI', 10.0, 50.0, 25.0)
-children = st.slider('Number of Children', 0, 5, 0)
-smoker = st.selectbox('Smoker', ['yes', 'no'])
-region = st.selectbox('Region', ['northeast', 'southeast', 'southwest', 'northwest'])
+st.title("Medical Insurance Cost Prediction 💵🏥")
 
-# Collect input into a raw dataframe
-raw_input = pd.DataFrame({
-    'age': [age],
-    'sex': [sex],
-    'bmi': [bmi],
-    'children': [children],
-    'smoker': [smoker],
-    'region': [region]
-})
+# ---------- User inputs ----------
+age      = st.slider ("Age", 18, 100, 30)
+sex      = st.selectbox("Sex",     ["male", "female"])
+bmi      = st.slider ("BMI", 10.0, 50.0, 25.0)
+children = st.slider ("Number of children", 0, 5, 0)
+smoker   = st.selectbox("Smoker",  ["yes", "no"])
+region   = st.selectbox("Region",  ["northeast", "southeast", "southwest", "northwest"])
 
-# Preprocess input properly (this handles one-hot encoding etc)
-X_input = preprocess.transform(raw_input)
+raw_input = pd.DataFrame(
+    {
+        "age":      [age],
+        "sex":      [sex],
+        "bmi":      [bmi],
+        "children": [children],
+        "smoker":   [smoker],
+        "region":   [region],
+    }
+)
 
-# Predict
-if st.button('Predict Medical Cost'):
-    pred = rf_model.predict(X_input)[0]
-    
-    st.subheader('Prediction Result:')
-    st.success(f'Estimated Annual Medical Cost: **${pred:,.2f}**')
+# ---------- Prediction ----------
+if st.button("Predict Medical Cost"):
+    X_input = preprocess.transform(raw_input)
+    pred    = rf_model.predict(X_input)[0]
 
-    with st.expander('See raw input'):
-        st.write(raw_input)
+    st.subheader("Prediction result")
+    st.write(f"💲 **Estimated annual charge:**  ${pred:,.2f}")
