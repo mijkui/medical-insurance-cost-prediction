@@ -1,42 +1,34 @@
-import streamlit as st
-import pandas as pd
-import pickle
-from pathlib import Path
+import streamlit as st, pandas as pd, joblib, numpy as np
 
-# ---------- Load exported artefacts ----------
-ROOT = Path(__file__).parent          # folder where app resides
-preprocess    = pickle.load(open(ROOT / "preprocess.pkl",   "rb"))
-feature_names = pickle.load(open(ROOT / "feature_names.pkl","rb"))
-rf_model      = pickle.load(open(ROOT / "rf_model.pkl",     "rb"))
+# configure page title and icon
+st.set_page_config(page_title="Medical Cost Predictor", page_icon="💲")
+st.title("💲 Medical Insurance Cost Estimator")
 
-# ---------- Page config ----------
-st.set_page_config(page_title="Medical Cost Predictor", page_icon="💵🏥")
+# load the saved model pipeline
+model = joblib.load("model/medical_cost.pkl")
 
-st.title("Medical Insurance Cost Prediction 💵🏥")
+# — build a simple form for user input —
+with st.form("predict"):
+    age     = st.number_input("Age", 18, 100, 30)
+    sex     = st.selectbox("Sex", ["male", "female"])
+    bmi     = st.number_input("BMI", 15.0, 50.0, 28.0, step=0.1)
+    children= st.number_input("Number of Children", 0, 5, 0)
+    smoker  = st.selectbox("Smoker", ["yes", "no"])
+    region  = st.selectbox("Region", ["southwest","southeast",
+                                      "northwest","northeast"])
+    submit  = st.form_submit_button("Predict")
 
-# ---------- User inputs ----------
-age      = st.slider ("Age", 18, 100, 30)
-sex      = st.selectbox("Sex",     ["male", "female"])
-bmi      = st.slider ("BMI", 10.0, 50.0, 25.0)
-children = st.slider ("Number of children", 0, 5, 0)
-smoker   = st.selectbox("Smoker",  ["yes", "no"])
-region   = st.selectbox("Region",  ["northeast", "southeast", "southwest", "northwest"])
+# when the user clicks Predict…
+if submit:
 
-raw_input = pd.DataFrame(
-    {
-        "age":      [age],
-        "sex":      [sex],
-        "bmi":      [bmi],
-        "children": [children],
-        "smoker":   [smoker],
-        "region":   [region],
-    }
-)
+     # assemble a DataFrame with the inputs
+    df = pd.DataFrame([{
+        "age": age, "sex": sex, "bmi": bmi, "children": children,
+        "smoker": smoker, "region": region
+    }])
 
-# ---------- Prediction ----------
-if st.button("Predict Medical Cost"):
-    X_input = preprocess.transform(raw_input)
-    pred    = rf_model.predict(X_input)[0]
+    # make prediction, extract the single float
+    cost = model.predict(df)[0]
 
-    st.subheader("Prediction result")
-    st.write(f"💲 **Estimated annual charge:**  ${pred:,.2f}")
+     # display result nicely
+    st.success(f"Estimated annual medical cost: **${cost:,.0f}**")
